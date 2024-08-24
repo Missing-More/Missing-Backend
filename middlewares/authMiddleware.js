@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const secretKey = 'your_secret_key'; // Replace with your actual secret key
+const secretKey = 'your-secret-key'; // Replace with your actual secret key
 
 // Middleware to authenticate the token
 const authenticateToken = (req, res, next) => {
@@ -8,14 +8,26 @@ const authenticateToken = (req, res, next) => {
 
     if (token == null) {
         return res.status(401).send({
-            message: "No token provided!"
+            status: "error",
+            statusCode: 401,
+            error: {
+                code: "NO_TOKEN_PROVIDED",
+                message: "No token provided.",
+                details: "Please provide a valid token to access this resource.",
+            },
         });
     }
 
     jwt.verify(token, secretKey, (err, user) => {
         if (err) {
             return res.status(403).send({
-                message: "Invalid token!"
+                status: "error",
+                statusCode: 403,
+                error: {
+                    code: "INVALID_TOKEN",
+                    message: "Invalid token.",
+                    details: "The provided token is invalid or expired.",
+                },
             });
         }
 
@@ -24,4 +36,7 @@ const authenticateToken = (req, res, next) => {
     });
 };
 
-module.exports = authenticateToken;
+
+module.exports = {
+    authenticateToken
+};

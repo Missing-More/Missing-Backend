@@ -1,183 +1,134 @@
-const mysql = require('mysql');
-const dbConfig = require('../config/db');
+const db = require("../config/db");
 
-// Create a connection to the database
-const connection = mysql.createConnection(dbConfig);
-
-// Connect to the database
-connection.connect(error => {
-    if (error) throw error;
-    console.log("Successfully connected to the database.");
-});
-
-// Post model
 class Post {
-    constructor(id, title, content, authorId) {
-        this.id = id;
-        this.title = title;
-        this.content = content;
-        this.authorId = authorId;
+  // Create a new post
+  static async create(post) {
+    try {
+      const result = await db.query(
+        `INSERT INTO Post (user_id, title, description, category, reward, lost_longitude, lost_latitude, lost_date)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                 RETURNING *`,
+        [
+          post.user_id,
+          post.title,
+          post.description,
+          post.category,
+          post.reward,
+          post.lost_longitude,
+          post.lost_latitude,
+          post.lost_date,
+        ]
+      );
+      return result.rows[0]; // Return the created post
+    } catch (error) {
+      console.error("Error creating post:", error);
+      throw error;
     }
+  }
 
-    static create(newPost, result) {
-        connection.query("INSERT INTO posts SET ?", newPos        const mysql = require('mysql');
-        const dbConfig = require('../config/db');
-        
-        // Create a connection to the database
-        const connection = mysql.createConnection(dbConfig);
-        
-        // Connect to the database
-        connection.connect(error => {
-            if (error) throw error;
-            console.log("Successfully connected to the database.");
-        });
-        
-        // Post model
-        class Post {
-            constructor(post_id, user_id, title, description, category, created_at, updated_at, reward, lost_location, lost_date) {
-                this.post_id = post_id;
-                this.user_id = user_id;
-                this.title = title;
-                this.description = description;
-                this.category = category;
-                this.created_at = created_at;
-                this.updated_at = updated_at;
-                this.reward = reward;
-                this.lost_location = lost_location;
-                this.lost_date = lost_date;
-            }
-        
-            static create(newPost, result) {
-                connection.query("INSERT INTO Post SET ?", newPost, (error, res) => {
-                    if (error) {
-                        console.log("error: ", error);
-                        result(error, null);
-                        return;
-                    }
-        
-                    console.log("created post: ", { post_id: res.insertId, ...newPost });
-                    result(null, { post_id: res.insertId, ...newPost });
-                });
-            }
-        
-            static findById(postId, result) {
-                connection.query(`SELECT * FROM Post WHERE post_id = ${postId}`, (error, res) => {
-                    if (error) {
-                        console.log("error: ", error);
-                        result(error, null);
-                        return;
-                    }
-        
-                    if (res.length) {
-                        console.log("found post: ", res[0]);
-                        result(null, res[0]);
-                        return;
-                    }
-        
-                    // No post found with the id
-                    result({ kind: "not_found" }, null);
-                });
-            }
-        }
-        
-        module.exports = Post;t, (error, res) => {
-            if (error) {
-                console.log("error: ", error);
-                result(error, null);
-                return;
-            }
-
-            console.log("created post: ", { id: res.insertId, ...newPost });
-            result(null, { id: res.insertId, ...newPost });
-        });
+  // Find a post by ID
+  static async findById(post_id) {
+    try {
+      const result = await db.query(`SELECT * FROM Post WHERE post_id = $1`, [
+        post_id,
+      ]);
+      if (result.rows.length === 0) {
+        throw { kind: "not_found", message: "Post not found" };
+      }
+      return result.rows[0];
+    } catch (error) {
+      console.error("Error finding post:", error);
+      throw error;
     }
+  }
 
-    static findById(postId, result) {
-        connection.query(`SELECT * FROM posts WHERE id = ${postId}`, (error, res) => {
-            if (error) {
-                console.log("error: ", error);
-                result(error, null);
-                return;
-            }
+// Find nearby posts
+static async findByNearby(longitude, latitude, radius) {
+    try {
+        const query = `
+            SELECT * FROM (
+                SELECT *, (
+                    6371 * acos(
+                        cos(radians($1)) * cos(radians(lost_latitude::float)) * cos(radians(lost_longitude::float) - radians($2)) +
+                        sin(radians($1)) * sin(radians(lost_latitude::float))
+                    )
+                ) AS distance
+                FROM Post
+            ) AS subquery
+            WHERE distance < $3
+            ORDER BY distance;
+        `;
 
-            if (res.length) {
-                console.log("found post: ", res[0]);
-                result(null, res[0]);
-                return;
-            }
+        const values = [latitude, longitude, radius];
+        const result = await db.query(query, values);
 
-            // not found Post with the id
-            result({ kind: "not_found" }, null);
-        });
+        console.log(result.rows);
+        return result.rows;
+    } catch (error) {
+        console.error("Error finding nearby posts:", error);
+        throw error;
     }
+}
 
-    static getAll(result) {
-        connection.query("SELECT * FROM posts", (error, res) => {
-            if (error) {
-                console.log("error: ", error);
-                result(null, error);
-                return;
-            }
 
-            console.log("posts: ", res);
-            result(null, res);
-        });
+  // Update a post by ID
+  static async updateById(post_id, updatedPost) {
+    try {
+      const result = await db.query(
+        `UPDATE Post 
+                 SET title = $1, description = $2, category = $3, reward = $4, 
+                     lost_location = $5, lost_date = $6, updated_at = CURRENT_TIMESTAMP
+                 WHERE post_id = $7
+                 RETURNING *`,
+        [
+          updatedPost.title,
+          updatedPost.description,
+          updatedPost.category,
+          updatedPost.reward,
+          updatedPost.lost_location,
+          updatedPost.lost_date,
+          post_id,
+        ]
+      );
+      if (result.rows.length === 0) {
+        throw { kind: "not_found", message: "Post not found" };
+      }
+      return result.rows[0]; // Return the updated post
+    } catch (error) {
+      console.error("Error updating post:", error);
+      throw error;
     }
+  }
 
-    static updateById(id, post, result) {
-        connection.query(
-            "UPDATE posts SET title = ?, content = ?, authorId = ? WHERE id = ?",
-            [post.title, post.content, post.authorId, id],
-            (error, res) => {
-                if (error) {
-                    console.log("error: ", error);
-                    result(null, error);
-                    return;
-                }
-
-                if (res.affectedRows == 0) {
-                    // not found Post with the id
-                    result({ kind: "not_found" }, null);
-                    return;
-                }
-
-                console.log("updated post: ", { id: id, ...post });
-                result(null, { id: id, ...post });
-            }
-        );
+  // Delete a post by ID
+  static async deleteById(post_id) {
+    try {
+      const result = await db.query(
+        `DELETE FROM Post WHERE post_id = $1 RETURNING *`,
+        [post_id]
+      );
+      if (result.rows.length === 0) {
+        throw { kind: "not_found", message: "Post not found" };
+      }
+      return result.rows[0]; // Return the deleted post
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      throw error;
     }
+  }
 
-    static remove(id, result) {
-        connection.query("DELETE FROM posts WHERE id = ?", id, (error, res) => {
-            if (error) {
-                console.log("error: ", error);
-                result(null, error);
-                return;
-            }
-
-            if (res.affectedRows == 0) {
-                // not found Post with the id
-                result({ kind: "not_found" }, null);
-                return;
-            }
-
-            console.log("deleted post with id: ", id);
-            result(null, res);
-        });
+  // Get all posts
+  static async getAll() {
+    try {
+      const result = await db.query(
+        `SELECT * FROM Post ORDER BY created_at DESC`
+      );
+      return result.rows;
+    } catch (error) {
+      console.error("Error retrieving posts:", error);
+      throw error;
     }
-
-    static removeAll(result) {
-        connection.query("DELETE FROM posts", (error, res) => {
-            if (error) {
-                console.log("error: ", error);
-                result(null, error);
-                return;
-            }
-
-            console.log(`deleted ${res.affectedRows} posts`);
-            result(null, res);
-        });
-    }
+  }
 }
 
 module.exports = Post;
