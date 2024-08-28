@@ -15,11 +15,13 @@ app.use('/users', require('./routes/user'));
 // Post routes
 app.use('/posts', require('./routes/post'));
 
+// Animal routes
+app.use('/animals', require('./routes/animal'));
+
 // Vehicle routes
 /*app.use('/vehicles', require('./routes/vehicle'));
 
-// Animal routes
-app.use('/animals', require('./routes/animal'));
+
 
 // Picture routes
 app.use('/pictures', require('./routes/picture'));

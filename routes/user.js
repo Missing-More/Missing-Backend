@@ -25,21 +25,21 @@ router.post('/register', userController.registerUser);
 router.post('/login', userController.loginUser);
 
 /**
- * @route GET /users/getMyUser
+ * @route GET /users/getMyInfo
  * @group User - Operations about user
  * @returns {object} 200 - User info retrieved successfully
  * @returns {Error}  default - Unexpected error
  */
-router.get('/getMyUser', verifyToken, userController.getUserInfo);
+router.get('/getMyInfo', verifyToken, userController.getUserInfo);
 
 /**
- * @route GET /users/getUserById
+ * @route GET /users/getUserInfoById
  * @group User - Operations about user
  * @param {number} user_id.query.required - User ID
  * @returns {object} 200 - User info retrieved successfully
  * @returns {Error}  default - Unexpected error
  */
-router.get('/getUserById', verifyToken, userController.getUserById);
+router.get('/getUserInfoById', verifyToken, userController.getUserById);
 
 
 

@@ -1,69 +1,156 @@
 const db = require("../config/db");
 
 class Post {
-  /**
-   * Create a new Post
-   * @param {Object} post - Post object
-   * @param {number} post.user_id - User ID
-   */
-  static async createAnimalPost(post, animal) {
+  static async createPost(req) {
     const client = await db.connect(); // Start a new transaction
     try {
-        await client.query('BEGIN'); // Begin transaction
+      await client.query("BEGIN"); // Begin transaction
 
-        // Insert into Post table
-        const postResult = await client.query(
-            `INSERT INTO Post (user_id, reward, lost_longitude, lost_latitude, lost_date)
-             VALUES ($1, $2, $3, $4, $5)
-             RETURNING *`,
-            [
-                post.user_id,
-                post.reward,
-                post.lost_longitude,
-                post.lost_latitude,
-                post.lost_date,
-            ]
-        );
+      // Insert into Post table
+      const postResult = await client.query(
+        `INSERT INTO Post (user_id, reward, lost_longitude, lost_latitude, lost_date, category_id)
+                 VALUES ($1, $2, $3, $4, $5, $6)
+                 RETURNING *`,
+        [
+          req.userId,
+          req.body.post.reward,
+          req.body.post.lost_longitude,
+          req.body.post.lost_latitude,
+          req.body.post.lost_date,
+          req.body.post.category_id,
+        ]
+      );
+      const createdPost = postResult.rows[0];
 
-        const createdPost = postResult.rows[0];
+      var entityResult;
+      const category_id = req.body.post.category_id;
 
-        // Insert into Animal table
-        const animalResult = await client.query(
+      switch (category_id) {
+        case 1: // Animal
+          entityResult = await client.query(
             `INSERT INTO Animal (post_id, name, gender, type, race, age, description)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
-             RETURNING *`,
+                     VALUES ($1, $2, $3, $4, $5, $6, $7)
+                     RETURNING *`,
             [
-                createdPost.post_id,
-                animal.name,
-                animal.gender,
-                animal.type,
-                animal.race,
-                animal.age,
-                animal.description
+              createdPost.post_id,
+              req.body.entity.name,
+              req.body.entity.gender,
+              req.body.entity.type,
+              req.body.entity.race,
+              req.body.entity.age,
+              req.body.entity.description,
             ]
-        );
+          );
+          break;
+        case 2: // Vehicle
+          entityResult = await client.query(
+            `INSERT INTO Vehicle (post_id, brand, model, color, plate_number, description)
+                     VALUES ($1, $2, $3, $4, $5, $6)
+                     RETURNING *`,
+            [
+              createdPost.post_id,
+              entity.brand,
+              entity.model,
+              entity.color,
+              entity.plate_number,
+              entity.description,
+            ]
+          );
+          break;
+        default:
+          throw { kind: "not_found", message: "Category not found" };
+      }
 
-        const createdAnimal = animalResult.rows[0];
+      const createdEntity = entityResult.rows[0];
 
-        await client.query('COMMIT'); // Commit transaction
+      await client.query("COMMIT"); // Commit transaction
 
-        return { post: createdPost, animal: createdAnimal }; // Return the created post and animal
+      return { post: createdPost, entity: createdEntity }; // Return the created post and entity
     } catch (error) {
-        await client.query('ROLLBACK'); // Rollback transaction on error
-        console.error("Error creating animal post:", error);
-        throw error;
+      await client.query("ROLLBACK"); // Rollback transaction on error
+      throw error;
     } finally {
-        client.release(); // Release the client back to the pool
+      client.release(); // Release the client back to the pool
     }
-}
+  }
 
+  static async getNearbyPosts(req) {
+    const category_id = req.query.category_id;
+    var category = "";
+    // Append category filter if provided
+    switch (category_id) {
+      case '1': // Animal
+        category = "Animal"; // Name of the table
+        break;
+      case '2': // Vehicle
+        category = "Vehicle"; // Name of the table
+        break;
+      case '3': // Object
+        category = "Object"; // Name of the table
+        break;
+      default:
+        category = "Not Found"; // Invalid category
+        break;
+    } 
+
+    // Define the base SQL query with distance calculation
+    let query =
+      `
+    WITH distance_calculated AS (
+      SELECT 
+          p.*, 
+          t.*,
+          ( 6371 * acos(
+              cos(radians($2)) * cos(radians(p.lost_latitude)) * 
+              cos(radians(p.lost_longitude) - radians($1)) + 
+              sin(radians($2)) * sin(radians(p.lost_latitude))
+          )) AS distance
+      FROM Post p
+      JOIN ` +
+      category +
+      ` t ON p.post_id = t.post_id
+    )
+    SELECT *
+    FROM distance_calculated
+    WHERE distance <= $3 -- Distance in kilometers
+    `;
+
+    const ordered = req.body.ordered;
+    // Append ORDER BY clause based on the 'ordered' parameter
+    switch (ordered) {
+      case "DISTANCE":
+        query += " ORDER BY distance ASC";
+        break;
+      case "DATELOST":
+        query += " ORDER BY p.lost_date ASC"; // Adjust column name as needed
+        break;
+      case "REWARD":
+        query += " ORDER BY p.reward DESC"; // Adjust column name as needed
+        break;
+      default:
+        // Default ordering can be by distance if 'ordered' is invalid
+        query += " ORDER BY distance ASC";
+        break;
+    }
+    
+    // Define the parameter values in the correct order
+    const values = [req.query.longitude, req.query.latitude, req.query.radius];
+    // Execute the query with the parameterized values
+    try {
+      const result = await db.query(query, values);
+      return result.rows;
+    } catch (error) {
+      console.error("Error executing query:", error);
+      throw error;
+    }
+  }
 
   /**
    * Find a post by ID
    * @param {number} post_id - Post ID
    * @returns {Object} Post object
    */
-  static async findById(post_id) {
+  static async findByPostId(post_id) {
     try {
       const result = await db.query(`SELECT * FROM Post WHERE post_id = $1`, [
         post_id,
@@ -79,105 +166,25 @@ class Post {
   }
 
   /**
-   * Find all nearby posts ordered by distance
-   * @param {number} longitude - Longitude
-   * @param {number} latitude - Latitude
-   * @param {number} radius - Radius
-   * @returns {Object} Post object
+   * Find all posts of a user
+   * @param {number} user_id - User ID
+   * @returns {Array} Array of Post objects
    */
-  static async findByNearbyOrderedByDistance(longitude, latitude, radius) {
+  static async findAllByUserId(user_id) {
     try {
-      const query = `
-            SELECT * FROM (
-                SELECT *, (
-                    6371 * acos(
-                        cos(radians($1)) * cos(radians(lost_latitude::float)) * cos(radians(lost_longitude::float) - radians($2)) +
-                        sin(radians($1)) * sin(radians(lost_latitude::float))
-                    )
-                ) AS distance
-                FROM Post
-            ) AS subquery
-            WHERE distance < $3
-            ORDER BY distance;
-        `;
-
-      const values = [latitude, longitude, radius];
-      const result = await db.query(query, values);
-
-      return result.rows;
-    } catch (error) {
-      console.error("Error finding nearby posts:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Find all nearby posts ordered by reward
-   * @param {number} longitude - Longitude
-   * @param {number} latitude - Latitude
-   * @param {number} radius - Radius
-   * @returns {Object} Post object
-   */
-  static async findByNearbyOrderedByReward(longitude, latitude, radius) {
-    try {
-      const query = `
-        SELECT * FROM (
-          SELECT *, (
-            6371 * acos(
-              cos(radians($1)) * cos(radians(lost_latitude::float)) * cos(radians(lost_longitude::float) - radians($2)) +
-              sin(radians($1)) * sin(radians(lost_latitude::float))
-            )
-          ) AS distance
-          FROM Post
-        ) AS subquery
-        WHERE distance < $3
-        ORDER BY reward DESC;
-      `;
-      const values = [latitude, longitude, radius];
-      const result = await db.query(query, values);
-
-      return result.rows;
-    } catch (error) {
-      console.error("Error finding nearby posts ordered by reward:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Find all nearby posts ordered by date posted
-   * @param {number} longitude - Longitude
-   * @param {number} latitude - Latitude
-   * @param {number} radius - Radius
-   * @returns {Object} Post object
-   */
-  static async findByNearbyOrderedByDatePosted(longitude, latitude, radius) {
-    try {
-      const query = `
-        SELECT * FROM (
-          SELECT *, (
-            6371 * acos(
-              cos(radians($1)) * cos(radians(lost_latitude::float)) * cos(radians(lost_longitude::float) - radians($2)) +
-              sin(radians($1)) * sin(radians(lost_latitude::float))
-            )
-          ) AS distance
-          FROM Post
-        ) AS subquery
-        WHERE distance < $3
-        ORDER BY created_at DESC;
-      `;
-      const values = [latitude, longitude, radius];
-      const result = await db.query(query, values);
-
-      return result.rows;
-    } catch (error) {
-      console.error(
-        "Error finding nearby posts ordered by date posted:",
-        error
+      const result = await db.query(
+        `SELECT Post.*, Animal.*
+         FROM Post
+         JOIN Animal ON Post.post_id = Animal.post_id
+         WHERE Post.user_id = $1`,
+        [user_id]
       );
+      return result.rows;
+    } catch (error) {
+      console.error("Error finding posts by user ID:", error);
       throw error;
     }
   }
-
   /**
    * Update a post by ID
    * @param {number} post_id - Post ID
