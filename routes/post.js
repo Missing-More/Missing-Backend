@@ -4,6 +4,8 @@ const postController = require("../controllers/postController");
 const verifyToken = require("../middlewares/verifyToken");
 
 
+router.get("/getPostById", postController.getPostById);
+
 router.post("/createPost", verifyToken, postController.createPost);
 
 router.get("/getNearbyPosts", postController.getNearbyPosts);

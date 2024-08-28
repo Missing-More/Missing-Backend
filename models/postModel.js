@@ -49,11 +49,11 @@ class Post {
                      RETURNING *`,
             [
               createdPost.post_id,
-              entity.brand,
-              entity.model,
-              entity.color,
-              entity.plate_number,
-              entity.description,
+              req.body.entity.brand,
+              req.body.entity.model,
+              req.body.entity.color,
+              req.body.entity.plate_number,
+              req.body.entity.description,
             ]
           );
           break;
@@ -79,19 +79,19 @@ class Post {
     var category = "";
     // Append category filter if provided
     switch (category_id) {
-      case '1': // Animal
+      case "1": // Animal
         category = "Animal"; // Name of the table
         break;
-      case '2': // Vehicle
+      case "2": // Vehicle
         category = "Vehicle"; // Name of the table
         break;
-      case '3': // Object
+      case "3": // Object
         category = "Object"; // Name of the table
         break;
       default:
         category = "Not Found"; // Invalid category
         break;
-    } 
+    }
 
     // Define the base SQL query with distance calculation
     let query =
@@ -132,7 +132,7 @@ class Post {
         query += " ORDER BY distance ASC";
         break;
     }
-    
+
     // Define the parameter values in the correct order
     const values = [req.query.longitude, req.query.latitude, req.query.radius];
     // Execute the query with the parameterized values
@@ -152,15 +152,42 @@ class Post {
    */
   static async findByPostId(post_id) {
     try {
-      const result = await db.query(`SELECT * FROM Post WHERE post_id = $1`, [
-        post_id,
-      ]);
-      if (result.rows.length === 0) {
+      let queryPost = `SELECT p.* FROM Post p WHERE post_id = $1`;
+      const resultPost = await db.query(queryPost, [post_id]);
+  
+      if (resultPost.rows.length === 0) {
         throw { kind: "not_found", message: "Post not found" };
       }
-      return result.rows[0];
+      const post = resultPost.rows[0];
+      const queryUser = `SELECT user_id, first_name, last_name, is_premium FROM "User" WHERE user_id = $1`;
+      const resultUser = await db.query(queryUser, [post.user_id]);
+      const user = resultUser.rows[0];
+  
+      // Create a combined result object
+      const result = {
+        post,
+        user,
+        entity: null
+      };
+  
+      switch (post.category_id) {
+        case 1:
+          const queryAnimal = `SELECT * FROM Animal WHERE post_id = $1`;
+          const resultAnimal = await db.query(queryAnimal, [post_id]);
+          result.entity = resultAnimal.rows[0];
+          break;
+        case 2:
+          const queryVehicle = `SELECT * FROM Vehicle WHERE post_id = $1`;
+          const resultVehicle = await db.query(queryVehicle, [post_id]);
+          result.entity = resultVehicle.rows[0];
+          break;
+        default:
+          break;
+      }
+  
+      return result;
     } catch (error) {
-      console.error("Error finding post:", error);
+      console.error("Error finding post by ID:", error);
       throw error;
     }
   }

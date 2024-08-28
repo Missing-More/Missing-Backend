@@ -1,5 +1,39 @@
 const Post = require("../models/postModel");
 
+
+exports.getPostById = async (req, res) => {
+  try {
+    const postId = req.query.post_id;
+    const post = await Post.findByPostId(postId);
+    if (!post) {
+      res.status(404).send({
+        status: "error",
+        statusCode: 404,
+        error: {
+          code: "POST_NOT_FOUND",
+          message: "Post not found.",
+          details: "The requested post could not be found.",
+        },
+      });
+    } else {
+      res.status(200).send(post);
+    }
+  } catch (error) {
+    console.error("Error retrieving post:", error);
+    res.status(500).send({
+      status: "error",
+      statusCode: 500,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "An unexpected error occurred while retrieving the post.",
+        details: error.message,
+      },
+    });
+  }
+}
+  
+
+
 /**
  * Create a new Post
  * @param {Request} req - Request object
