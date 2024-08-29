@@ -4,7 +4,11 @@ const postController = require("../controllers/postController");
 const verifyToken = require("../middlewares/verifyToken");
 
 
+
+
 router.get("/getPostById", postController.getPostById);
+
+router.get("/getMyPosts", verifyToken, postController.getMyPosts);
 
 router.post("/createPost", verifyToken, postController.createPost);
 
@@ -34,7 +38,7 @@ router.get("/allPosts", postController.getAllPosts);
  * @returns {object} 200 - Posts retrieved successfully
  * @returns {Error}  default - Unexpected error
  */
-router.get("/getMyPosts", verifyToken, postController.getMyPosts);
+
 
 
 /**

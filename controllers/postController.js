@@ -75,7 +75,28 @@ exports.getNearbyPosts = async (req, res) => {
       },
     });
   }
-}
+};
+
+
+exports.getMyPosts = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const posts = await Post.getAllByUserId(userId);
+    res.status(200).send(posts);
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({
+      status: "error",
+      statusCode: 500,
+      error: {
+        code: "ERROR_FINDING_POSTS",
+        message: "An error occurred while finding posts by user ID.",
+        details: "Please try again later.",
+      },
+    });
+  }
+};
+
 
 /**
  * Retrieve all Posts
@@ -195,30 +216,6 @@ exports.deletePostById = async (req, res) => {
       error: {
         code: "ERROR_DELETING_POST",
         message: "An error occurred while deleting the post.",
-        details: "Please try again later.",
-      },
-    });
-  }
-};
-
-/**
- * Retrieve all Posts by User ID
- * @param {Request} req - Request object
- * @param {Response} res - Response object
- */
-exports.getMyPosts = async (req, res) => {
-  try {
-    const userId = req.userId;
-    const posts = await Post.findAllByUserId(userId);
-    res.status(200).send(posts);
-  } catch (err) {
-    console.log(err);
-    res.status(500).send({
-      status: "error",
-      statusCode: 500,
-      error: {
-        code: "ERROR_FINDING_POSTS",
-        message: "An error occurred while finding posts by user ID.",
         details: "Please try again later.",
       },
     });

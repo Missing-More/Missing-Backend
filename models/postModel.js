@@ -152,39 +152,52 @@ class Post {
    */
   static async findByPostId(post_id) {
     try {
-      let queryPost = `SELECT p.* FROM Post p WHERE post_id = $1`;
+      // Query for the post
+      const queryPost = `SELECT p.* FROM Post p WHERE p.post_id = $1`;
       const resultPost = await db.query(queryPost, [post_id]);
-  
+      
       if (resultPost.rows.length === 0) {
         throw { kind: "not_found", message: "Post not found" };
       }
+
       const post = resultPost.rows[0];
+      
+      // Query for the user associated with the post
       const queryUser = `SELECT user_id, first_name, last_name, is_premium FROM "User" WHERE user_id = $1`;
       const resultUser = await db.query(queryUser, [post.user_id]);
+      
+      if (resultUser.rows.length === 0) {
+        throw { kind: "not_found", message: "User not found" };
+      }
+      
       const user = resultUser.rows[0];
-  
+
       // Create a combined result object
       const result = {
         post,
         user,
         entity: null
       };
-  
+
+      // Query for the entity based on the post's category
       switch (post.category_id) {
         case 1:
           const queryAnimal = `SELECT * FROM Animal WHERE post_id = $1`;
           const resultAnimal = await db.query(queryAnimal, [post_id]);
-          result.entity = resultAnimal.rows[0];
+          result.entity = resultAnimal.rows[0] || null;
           break;
+
         case 2:
           const queryVehicle = `SELECT * FROM Vehicle WHERE post_id = $1`;
           const resultVehicle = await db.query(queryVehicle, [post_id]);
-          result.entity = resultVehicle.rows[0];
+          result.entity = resultVehicle.rows[0] || null;
           break;
+
         default:
+          // No specific entity type, or the category is not handled
+          result.entity = null;
           break;
       }
-  
       return result;
     } catch (error) {
       console.error("Error finding post by ID:", error);
@@ -192,26 +205,35 @@ class Post {
     }
   }
 
-  /**
-   * Find all posts of a user
-   * @param {number} user_id - User ID
-   * @returns {Array} Array of Post objects
-   */
-  static async findAllByUserId(user_id) {
-    try {
-      const result = await db.query(
-        `SELECT Post.*, Animal.*
-         FROM Post
-         JOIN Animal ON Post.post_id = Animal.post_id
-         WHERE Post.user_id = $1`,
-        [user_id]
-      );
-      return result.rows;
-    } catch (error) {
-      console.error("Error finding posts by user ID:", error);
-      throw error;
+/**
+ * Find all posts of a user
+ * @param {number} user_id - User ID
+ * @returns {Array} Array of Post objects
+ */
+static async getAllByUserId(user_id) {
+  try {
+    const result = await db.query(
+      `SELECT * FROM Post
+       WHERE Post.user_id = $1`,
+      [user_id]
+    );
+
+    // Initialize allPosts as an array
+    const allPosts = [];
+
+    // Iterate over result rows and add each post to allPosts
+    for (const row of result.rows) {
+      // Assuming findByPostId is a static method of the same class
+      allPosts.push(await this.findByPostId(row.post_id));
     }
+
+    return allPosts;
+  } catch (error) {
+    console.error("Error finding posts by user ID:", error);
+    throw error;
   }
+}
+
   /**
    * Update a post by ID
    * @param {number} post_id - Post ID
