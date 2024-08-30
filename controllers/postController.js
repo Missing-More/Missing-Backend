@@ -127,16 +127,16 @@ exports.getAllPosts = async (req, res) => {
  */
 exports.updatePostById = async (req, res) => {
   try {
-    const updatedPost = {
+    /*const updatedPost = {
       title: req.body.title,
       description: req.body.description,
       category: req.body.category,
       reward: req.body.reward,
       lost_location: req.body.lost_location,
       lost_date: req.body.lost_date,
-    };
+    };*/
 
-    const data = await Post.updateById(req.params.post_id, updatedPost);
+    const data = await Post.updateById(req);
     res.status(200).send(data);
   } catch (err) {
     if (err.kind === "not_found") {
@@ -171,7 +171,6 @@ exports.updatePostById = async (req, res) => {
 exports.deletePostById = async (req, res) => {
   try {
     const postId = req.params.post_id;
-    console.log(postId);
 
     // Fetch the post by ID to verify ownership
     const post = await Post.findByPostId(postId);

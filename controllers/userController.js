@@ -134,7 +134,7 @@ exports.loginUser = async (req, res) => {
 
         // Generate a token
         const token = jwt.sign({ id: user.user_id }, secretKey, {
-            expiresIn: 86400, // 24 hours
+            expiresIn: 864000, // 24 hours
         });
 
         res.status(200).send({
