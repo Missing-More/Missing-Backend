@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const userController = require('../controllers/userController');
-const authenticateToken = require('../middlewares/authMiddleware');
-const verifyToken = require('../middlewares/verifyToken');
+const userController = require('../controller/userController');
+const authenticateToken = require('../../middlewares/authMiddleware');
+const verifyToken = require('../../middlewares/verifyToken');
 
 /**
  * @route POST /users/register

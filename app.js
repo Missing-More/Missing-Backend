@@ -10,13 +10,13 @@ app.get('/', (req, res) => {
 });
 
 // User routes
-app.use('/users', require('./routes/user'));
+app.use('/users', require('./app/user/route/user'));
 
 // Post routes
-app.use('/posts', require('./routes/post'));
+app.use('/listings', require('./app/listing/route/listing'));
 
 // Animal routes
-app.use('/animals', require('./routes/animal'));
+//app.use('/animals', require('./routes/animal'));
 
 // Vehicle routes
 /*app.use('/vehicles', require('./routes/vehicle'));

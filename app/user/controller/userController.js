@@ -1,73 +1,100 @@
-const User = require("../models/userModel");
+const User = require("../model/userModel");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const { isValidEmail, isPasswordStrong } = require("../utils/validators");
+const { isValidEmail, isPasswordStrong } = require("../../../utils/validators");
 
 // Define your secret key securely
 const secretKey = process.env.JWT_SECRET || "your-secret-key";
 
 // Create and Save a new User
 exports.registerUser = async (req, res) => {
-    // Validate request
     const { email, password } = req.body;
-
+  
+    // Validate request
     if (!email || !password) {
-        return res.status(400).send({
-            status: "error",
-            statusCode: 400,
-            error: {
-                code: "EMPTY_ENTRY",
-                message: "Email and password cannot be empty!",
-                details: "The email and password fields cannot be empty. Please provide a valid email and password to register a new user.",
-                path: "users/register",
-            },
-        });
+      return res.status(400).json({
+        status: "error",
+        statusCode: 400,
+        error: {
+          code: "EMPTY_ENTRY",
+          message: "Email and password cannot be empty!",
+          details: "The email and password fields cannot be empty. Please provide a valid email and password to register a new user.",
+          path: "users/register",
+        },
+      });
     }
-
+  
     // Verify email format
     if (!isValidEmail(email)) {
-        return res.status(400).send({
-            status: "error",
-            statusCode: 400,
-            error: {
-                code: "INVALID_EMAIL",
-                message: "Invalid email format.",
-                details: "Please provide a valid email address.",
-                path: "users/register",
-            },
-        });
+      return res.status(400).json({
+        status: "error",
+        statusCode: 400,
+        error: {
+          code: "INVALID_EMAIL",
+          message: "Invalid email format.",
+          details: "Please provide a valid email address.",
+          path: "users/register",
+        },
+      });
     }
-
+  
+    // Check password strength
     if (!isPasswordStrong(password)) {
-        return res.status(400).send({
-            status: "error",
-            statusCode: 400,
-            error: {
-                code: "WEAK_PASSWORD",
-                message: "Password is not strong enough.",
-                details: "Password must be at least 6 characters long.",
-                path: "users/register",
-            },
-        });
+      return res.status(400).json({
+        status: "error",
+        statusCode: 400,
+        error: {
+          code: "WEAK_PASSWORD",
+          message: "Password is not strong enough.",
+          details: "Password must be at least 6 characters long.",
+          path: "users/register",
+        },
+      });
     }
-
+  
     try {
-        // Hash the password
-        const hashedPassword = bcrypt.hashSync(password, 8);
-
-        // Create a User
-        const user = {
-            email: email,
-            password: hashedPassword,
-        };
-
-        // Save User in the database
-        const data = await User.create(user);
-        res.status(201).send(data);
-    } catch (err) {
-        res.status(err.statusCode || 500).send(err);
+      // Hash the password
+      const hashedPassword = bcrypt.hashSync(password, 8);
+  
+      // Create a User object
+      const user = {
+        email: email,
+        password: hashedPassword,
+      };
+  
+      // Save User in the database
+      const data = await User.createUser(user);
+  
+      // Send a success response
+      res.status(201).json({
+        status: "success",
+        statusCode: 201,
+        data: {
+          id: data.id,
+          email: data.email,
+        },
+      });
+    } catch (error) {
+      // Handle specific error from the model layer
+      if (error.statusCode) {
+        return res.status(error.statusCode).json(error);
+      }
+  
+      // Handle unknown errors
+      console.error("Error registering user:", error);
+      res.status(500).json({
+        status: "error",
+        statusCode: 500,
+        error: {
+          code: "UNKNOWN_ERROR",
+          message: "An unexpected error occurred.",
+          details: "Please try again later.",
+          path: "users/register",
+        },
+      });
     }
-};
+  };
+  
 
 // Login a User
 exports.loginUser = async (req, res) => {
