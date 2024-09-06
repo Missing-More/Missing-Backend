@@ -1,6 +1,27 @@
-const db = require("../../../config/db");
+const db = require("../config/db");
 
 class Listing {
+
+  static async getListingById(listingId) {
+    try {
+      const result = await db.query(
+        `SELECT * FROM "LostItem" WHERE lost_item_id = $1`,
+        [listingId]
+      );
+      if (result.rows.length === 0) {
+        throw { kind: "not_found", message: "Listing not found" };
+      }
+      return result.rows[0]; // Return the listing
+    } catch (error) {
+      console.error("Error retrieving listing:", error);
+      throw error;
+    }
+  }
+
+
+  /**
+   *
+   */
   static async createListing(req) {
     const client = await db.connect(); // Start a new transaction
     try {
@@ -16,7 +37,7 @@ class Listing {
           req.body.location.city || null,
           req.body.location.state || null,
           req.body.location.country || null,
-          req.body.location.Listingal_code || null,
+          req.body.location.postal_code || null,
         ]
       );
       const createdLocationID = locationResult.rows[0].location_id;
@@ -36,10 +57,10 @@ class Listing {
               req.body.listing.reward,
               req.body.listing.lost_date,
               createdLocationID,
-              'REPORTED'
+              "REPORTED",
             ]
           );
-          createdListing = lostItemResult.rows[0]
+          createdListing = lostItemResult.rows[0];
           lostItemId = createdListing.lost_item_id;
           break;
         case "FOUND":
@@ -55,7 +76,7 @@ class Listing {
               createdLocationID,
             ]
           );
-          createdListing = foundItemResult.rows[0]
+          createdListing = foundItemResult.rows[0];
           foundItemId = createdListing.found_item_id;
           break;
         default:
@@ -120,6 +141,9 @@ class Listing {
     }
   }
 
+  /**
+   *
+   */
   static async getNearbyLostItems(req) {
     const category_id = req.query.category_id;
     var category = "";
@@ -140,9 +164,8 @@ class Listing {
     }
 
     // Define the base SQL query with distance calculation
-    let query =
-      `
-WITH distance_calculated AS (
+    let query = `
+  WITH distance_calculated AS (
     SELECT 
         li.*, 
         l.*,
@@ -155,10 +178,10 @@ WITH distance_calculated AS (
     FROM "Location" l
     JOIN "LostItem" li ON li.location_id = l.location_id 
     JOIN "${category}" c ON c.lost_item_id = li.lost_item_id
-)
-SELECT *
-FROM distance_calculated
-WHERE distance <= $3; -- Distance in kilometers`;
+  )
+    SELECT *
+    FROM distance_calculated
+    WHERE distance <= $3; -- Distance in kilometers`;
     console.log(query);
     const ordered = req.body.ordered;
     // Append ORDER BY clause based on the 'ordered' parameter
@@ -191,75 +214,13 @@ WHERE distance <= $3; -- Distance in kilometers`;
   }
 
   /**
-   * Find a listing by ID
-   * @param {number} Listing_id - Listing ID
-   * @returns {Object} Listing object
-   */
-  static async findByListingId(Listing_id) {
-    try {
-      // Query for the listing
-      const queryListing = `SELECT p.* FROM Listing p WHERE p.Listing_id = $1`;
-      const resultListing = await db.query(queryListing, [Listing_id]);
-
-      if (resultListing.rows.length === 0) {
-        throw { kind: "not_found", message: "Listing not found" };
-      }
-
-      const listing = resultListing.rows[0];
-
-      // Query for the user associated with the listing
-      const queryUser = `SELECT user_id, first_name, last_name, is_premium FROM "User" WHERE user_id = $1`;
-      const resultUser = await db.query(queryUser, [listing.user_id]);
-
-      if (resultUser.rows.length === 0) {
-        throw { kind: "not_found", message: "User not found" };
-      }
-
-      const user = resultUser.rows[0];
-
-      // Create a combined result object
-      const result = {
-        listing,
-        user,
-        entity: null,
-      };
-
-      // Query for the entity based on the listing's category
-      switch (listing.category_id) {
-        case 1:
-          const queryAnimal = `SELECT * FROM Animal WHERE Listing_id = $1`;
-          const resultAnimal = await db.query(queryAnimal, [Listing_id]);
-          result.entity = resultAnimal.rows[0] || null;
-          break;
-
-        case 2:
-          const queryVehicle = `SELECT * FROM Vehicle WHERE Listing_id = $1`;
-          const resultVehicle = await db.query(queryVehicle, [Listing_id]);
-          result.entity = resultVehicle.rows[0] || null;
-          break;
-
-        default:
-          // No specific entity type, or the category is not handled
-          result.entity = null;
-          break;
-      }
-      return result;
-    } catch (error) {
-      console.error("Error finding listing by ID:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Find all Listings of a user
-   * @param {number} user_id - User ID
-   * @returns {Array} Array of Listing objects
+   *
    */
   static async getAllByUserId(user_id) {
     try {
-      const result = await db.query(
-        `SELECT * FROM Listing
-       WHERE Listing.user_id = $1`,
+      const lostItem = await db.query(
+        `SELECT * FROM "LostItem"
+       WHERE user_id = $1`,
         [user_id]
       );
 
@@ -269,7 +230,7 @@ WHERE distance <= $3; -- Distance in kilometers`;
       // Iterate over result rows and add each listing to allListings
       for (const row of result.rows) {
         // Assuming findByListingId is a static method of the same class
-        allListings.push(await this.findByListingId(row.Listing_id));
+        allListings.push(await this.findByListingId(row.listing_id));
       }
 
       return allListings;
@@ -346,7 +307,10 @@ WHERE distance <= $3; -- Distance in kilometers`;
       }
 
       if (entityResult.rowCount === 0) {
-        throw { kind: "not_found", message: "Entity not found for this listing" };
+        throw {
+          kind: "not_found",
+          message: "Entity not found for this listing",
+        };
       }
 
       const updatedListing = updatedListingResult.rows[0];
@@ -364,9 +328,7 @@ WHERE distance <= $3; -- Distance in kilometers`;
   }
 
   /**
-   * Delete a listing by ID
-   * @param {number} Listing_id - Listing ID
-   * @returns {Object} Deleted Listing object
+   *
    */
   static async deleteById(Listing_id) {
     try {
@@ -385,9 +347,7 @@ WHERE distance <= $3; -- Distance in kilometers`;
   }
 
   /**
-   * Retrieve all Listings
-   * @returns {Array} Array of Listing objects
-   * @throws {Error} DB error
+   *
    */
   static async getAll() {
     try {

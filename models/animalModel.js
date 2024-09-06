@@ -1,33 +1,56 @@
 const db = require("../config/db");
 
 class Animal {
-
-
-  static async getPostsByUserId(userId) {
-    const query = `
-                SELECT p.*, a.*
-                FROM Post p
-                JOIN Animal a ON p.post_id = a.post_id
-                WHERE p.user_id = $1
-            `;
-
-    const { rows } = await db.query(query, [userId]);
-    return rows;
+  static async getAnimal(id) {
+    try {
+      const result = await db.query(
+        `SELECT * FROM "Animal" WHERE animal_id = $1`,
+        [id]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error("Error getting animal:", error);
+      throw error;
+    }
   }
 
-
-
-  static async getPostById(postId) {
-    const query = `
-                SELECT p.*, a.*
-                FROM Post p
-                JOIN Animal a ON p.post_id = a.post_id
-                WHERE p.post_id = $1
-            `;
-
-    const { rows } = await db.query(query, [postId]);
-    return rows[0];
+  static async getAnimalByPostId(post_id) {
+    try {
+      const result = await db.query(
+        `SELECT * FROM "Animal" WHERE lost_item_id = $1 OR found_item_id = $1`,
+        [post_id]
+      );
+      return result.rows;
+    } catch (error) {
+      console.error("Error getting animal:", error);
+      throw error;
+    }
   }
+
+  static async createAnimal(animal, post_id) {
+    console.log(animal);
+    try {
+      const result = await db.query(
+        `INSERT INTO "Animal" (post_id, name, gender, type, race, age, description)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)
+                 RETURNING *`,
+        [
+          post_id,
+          animal.name,
+          animal.gender,
+          animal.type,
+          animal.race,
+          animal.age,
+          animal.description,
+        ]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error("Error creating animal:", error);
+      throw error;
+    }
+  }
+
 }
 
 module.exports = Animal;

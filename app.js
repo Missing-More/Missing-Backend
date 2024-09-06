@@ -13,7 +13,7 @@ app.get('/', (req, res) => {
 app.use('/users', require('./app/user/route/user'));
 
 // Post routes
-app.use('/listings', require('./app/listing/route/listing'));
+app.use('/posts', require('./app/post/route/post'));
 
 // Animal routes
 //app.use('/animals', require('./routes/animal'));
