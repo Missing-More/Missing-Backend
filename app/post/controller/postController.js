@@ -1,16 +1,27 @@
 const Listing = require("../../../models/listingModel");
 const User = require("../../../models/userModel");
-//const LostItem = require("../../../models/lostItemModel");
-//const FoundItem = require("../../../models/foundItemModel");
 const Animal = require("../../../models/animalModel");
 const Vehicle = require("../../../models/vehicleModel");
 const Post = require("../../../models/postModel");
 const Location = require("../../../models/locationModel");
+const Image = require("../../../models/imageModel");
 
 exports.getPost = async (req, res) => {
   try {
-    const post_id = req.query.post_id;
-    const post = await Post.getPost(post_id);
+    const postId = req.query.post_id;
+
+    if (!postId) {
+      return res.status(400).send({
+        status: "error",
+        statusCode: 400,
+        error: {
+          code: "INVALID_PARAMETER",
+          message: "Post ID is required.",
+        },
+      });
+    }
+
+    const post = await Post.getPost(postId);
 
     if (!post) {
       return res.status(404).send({
@@ -19,36 +30,32 @@ exports.getPost = async (req, res) => {
         error: {
           code: "POST_NOT_FOUND",
           message: "Post not found.",
-          details: "The requested Post could not be found.",
         },
       });
     }
 
-    // Retrieve the entity based on the category
+    const images = await Image.getImages(postId);
+
     let entity = null;
     switch (post.category_id) {
-      case "1":
-        entity = await Animal.getAnimal(post.post_id);
+      case 1:
+        entity = await Animal.getAnimal(postId);
         break;
-      case "2":
-        entity = await Vehicle.getVehicle(post.post_id);
+      case 2:
+        entity = await Vehicle.getVehicle(postId);
         break;
       default:
         break;
     }
-    const userId = post.user_id;
 
-    // Retrieve user information
-    const user = userId ? await User.getUser(userId) : null;
+    const user = post.user_id ? await User.getUser(post.user_id) : null;
 
-    // Respond with the listing and user information
-    const result = {
-      post: post,
-      entity: entity,
-      user: user,
-    };
-
-    res.status(200).send(result);
+    res.status(200).send({
+      post,
+      images,
+      entity,
+      user,
+    });
   } catch (error) {
     console.error("Error retrieving Post:", error);
     res.status(500).send({
@@ -66,101 +73,105 @@ exports.getPost = async (req, res) => {
 exports.getMyPosts = async (req, res) => {
   try {
     const userId = req.userId;
-    const posts = await Post.getPosts(userId);
-    
-    // Use map to handle each post and await Promise.all to process them concurrently
-    const results = await Promise.all(posts.map(async (post) => {
-      // Retrieve the entity based on the category
-      let entity = null;
-      switch (post.category_id) {
-        case 1:
-          entity = await Animal.getAnimal(post.post_id);
-          break;
-        case 2:
-          entity = await Vehicle.getVehicle(post.post_id);
-          break;
-        default:
-          break;
-      }
 
-      // Retrieve user information (assuming it is the same user for all posts)
-      const user = userId ? await User.getUser(userId) : null;
-
-      // Respond with the listing and user information
-      return {
-        post: post,
-        entity: entity,
-        user: user,
-      };
-    }));
-
-    res.status(200).send(results);
-  } catch (err) {
-    console.log(err);
-    res.status(500).send({
-      status: "error",
-      statusCode: 500,
-      error: {
-        code: "ERROR_FINDING_LISTINGS",
-        message: "An error occurred while finding Listings by user ID.",
-        details: "Please try again later.",
-      },
-    });
-  }
-};
-
-
-exports.createPost = async (req, res) => {
-  try {
-    const user_id = req.userId;
-    //create location
-    const createdLocation = await Location.createLocation(req.body.location);
-    const createdLocationID = createdLocation.location_id;
-
-    //create post
-    const createdPost = await Post.createPost(
-      req.body.post,
-      user_id,
-      createdLocationID
-    );
-    const createdPostID = createdPost.post_id;
-
-    //create entity
-    let createdEntity = null;
-    console.log(req.body.post);
-    switch (req.body.post.category_id) {
-      case 1:
-        createdEntity = await Animal.createAnimal(
-          req.body.entity,
-          createdPostID
-        );
-        break;
-      case 2:
-        createdEntity = await Vehicle.createVehicle(
-          req.body.entity,
-          createdPostID
-        );
-        break;
-      default:
-        break;
+    if (!userId) {
+      return res.status(400).send({
+        status: "error",
+        statusCode: 400,
+        error: {
+          code: "INVALID_PARAMETER",
+          message: "User ID is required.",
+        },
+      });
     }
 
-    // Respond with the created post
-    const result = {
-      post: createdPost,
-      location: createdLocation,
-      entity: createdEntity,
-    };
+    const posts = await Post.getPosts(userId);
 
-    res.status(200).send(result);
+    const results = await Promise.all(
+      posts.map(async (post) => {
+        const images = await Image.getImages(post.post_id);
+        let entity = null;
+
+        switch (post.category_id) {
+          case 1:
+            entity = await Animal.getAnimal(post.post_id);
+            break;
+          case 2:
+            entity = await Vehicle.getVehicle(post.post_id);
+            break;
+          default:
+            break;
+        }
+
+        return {
+          post,
+          images,
+          entity,
+          user: await User.getUser(userId),
+        };
+      })
+    );
+
+    res.status(200).send(results);
   } catch (error) {
-    console.error("Error creating Listing:", error);
+    console.error("Error retrieving posts:", error);
     res.status(500).send({
       status: "error",
       statusCode: 500,
       error: {
         code: "INTERNAL_SERVER_ERROR",
-        message: "An unexpected error occurred while creating the Listing.",
+        message: "An error occurred while retrieving posts.",
+        details: error.message,
+      },
+    });
+  }
+};
+
+exports.createPost = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { location, post, images, entity } = req.body;
+
+    if (!userId || !post || !location) {
+      return res.status(400).send({
+        status: "error",
+        statusCode: 400,
+        error: {
+          code: "INVALID_INPUT",
+          message: "User ID, post data, and location are required.",
+        },
+      });
+    }
+
+    const createdLocation = await Location.createLocation(location);
+    const createdPost = await Post.createPost(post, userId, createdLocation.location_id);
+    const postId = createdPost.post_id;
+
+    const createdImages = await Promise.all(
+      images.map(image => Image.createImage(image, postId))
+    );
+
+    let createdEntity = null;
+    if (post.category_id === 1) {
+      createdEntity = await Animal.createAnimal(entity, postId);
+    } else if (post.category_id === 2) {
+      createdEntity = await Vehicle.createVehicle(entity, postId);
+    }
+
+    res.status(201).send({
+      post: createdPost,
+      images: createdImages,
+      location: createdLocation,
+      entity: createdEntity,
+    });
+  } catch (error) {
+    console.error("Error creating post:", error);
+    res.status(500).send({
+      status: "error",
+      statusCode: 500,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "An unexpected error occurred while creating the post.",
         details: error.message,
       },
     });
@@ -168,48 +179,60 @@ exports.createPost = async (req, res) => {
 };
 
 exports.getNearbyPosts = async (req, res) => {
-  if (req.query.longitude == null || req.query.latitude == null || req.query.radius == null) {
+  const { longitude, latitude, radius, type, category_id } = req.query;
+
+  if (!longitude || !latitude || !radius) {
     return res.status(400).send({
       status: "error",
       statusCode: 400,
       error: {
         code: "INVALID_PARAMETERS",
-        message: "Invalid parameters.",
-        details: "Please provide longitude, latitude, and radius.",
+        message: "Longitude, latitude, and radius are required.",
       },
     });
   }
 
   try {
-    const posts = await Post.getNearbyPosts(req.query.longitude, req.query.latitude, req.query.radius);
-    
-    res.status(200).send(posts);
-  } catch (err) {
-    console.error("Error retrieving nearby posts:", err);
-    res.status(500).send({
-      status: "error",
-      statusCode: 500,
-      error: {
-        code: "ERROR_RETRIEVING_NEARBY_ListingS",
-        message: "An error occurred while retrieving nearby Listings.",
-        details: "Please try again later.",
-      },
-    });
-  }
-};
+    const posts = await Post.getNearbyPosts(longitude, latitude, radius, type, category_id);
 
-exports.getAllListings = async (req, res) => {
-  try {
-    const Listings = await Listing.getAll();
-    res.status(200).send(Listings);
-  } catch (err) {
+    const results = await Promise.all(
+      posts.map(async (post) => {
+        const images = await Image.getImages(post.post.post_id);
+        let entity = null;
+
+        switch (post.category_id) {
+          case 1:
+            entity = await Animal.getAnimal(post.post.post_id);
+            break;
+          case 2:
+            entity = await Vehicle.getVehicle(post.post.post_id);
+            break;
+          default:
+            break;
+        }
+
+        const user = await User.getUser(post.user_id);
+
+        return {
+          post: post.post,
+          images: images,
+          location: post.location,
+          entity: entity,
+          user: user,
+        };
+      })
+    );
+
+    res.status(200).send(results);
+  } catch (error) {
+    console.error("Error retrieving nearby posts:", error);
     res.status(500).send({
       status: "error",
       statusCode: 500,
       error: {
-        code: "ERROR_RETRIEVING_ListingS",
-        message: "An error occurred while retrieving Listings.",
-        details: "Please try again later.",
+        code: "INTERNAL_SERVER_ERROR",
+        message: "An unexpected error occurred while retrieving nearby posts.",
+        details: error.message,
       },
     });
   }
@@ -217,95 +240,89 @@ exports.getAllListings = async (req, res) => {
 
 exports.updateListingById = async (req, res) => {
   try {
-    /*const updatedListing = {
-      title: req.body.title,
-      description: req.body.description,
-      category: req.body.category,
-      reward: req.body.reward,
-      lost_location: req.body.lost_location,
-      lost_date: req.body.lost_date,
-    };*/
-
     const data = await Listing.updateById(req);
+
     res.status(200).send(data);
-  } catch (err) {
-    if (err.kind === "not_found") {
+  } catch (error) {
+    if (error.kind === "not_found") {
       res.status(404).send({
         status: "error",
         statusCode: 404,
         error: {
-          code: "Listing_NOT_FOUND",
+          code: "LISTING_NOT_FOUND",
           message: "Listing not found.",
-          details: "The requested Listing could not be found.",
         },
       });
     } else {
+      console.error("Error updating listing:", error);
       res.status(500).send({
         status: "error",
         statusCode: 500,
         error: {
-          code: "ERROR_UPDATING_Listing",
-          message: "An error occurred while updating the Listing.",
-          details: "Please try again later.",
+          code: "INTERNAL_SERVER_ERROR",
+          message: "An unexpected error occurred while updating the listing.",
+          details: error.message,
         },
       });
     }
   }
 };
 
-/**
- * Delete a Listing by ID
- * @param {Request} req - Request object
- * @param {Response} res - Response object
- */
-exports.deleteListingById = async (req, res) => {
+exports.deletePost = async (req, res) => {
   try {
-    const ListingId = req.params.Listing_id;
+    const postId = req.query.post_id;
 
-    // Fetch the Listing by ID to verify ownership
-    const Listing = await Listing.findByListingId(ListingId);
-
-    if (!Listing) {
-      return res.status(404).send({
+    if (!postId) {
+      return res.status(400).send({
         status: "error",
-        statusCode: 404,
+        statusCode: 400,
         error: {
-          code: "Listing_NOT_FOUND",
-          message: "Listing not found.",
-          details: "The requested Listing could not be found.",
+          code: "INVALID_PARAMETER",
+          message: "Post ID is required.",
         },
       });
     }
 
-    // Check if the user making the request is the owner of the Listing
-    if (Listing.user_id !== req.userId) {
+    const post = await Post.getPost(postId);
+
+    if (!post) {
+      return res.status(404).send({
+        status: "error",
+        statusCode: 404,
+        error: {
+          code: "POST_NOT_FOUND",
+          message: "Post not found.",
+        },
+      });
+    }
+
+    if (post.user_id !== req.userId) {
       return res.status(403).send({
         status: "error",
         statusCode: 403,
         error: {
           code: "UNAUTHORIZED",
-          message: "You are not authorized to delete this Listing.",
-          details: "You can only delete your own Listings.",
+          message: "You are not authorized to delete this post.",
         },
       });
     }
 
-    // If authorized, delete the Listing
-    await Listing.deleteById(ListingId);
+    await Post.delete(postId);
+
     res.status(200).send({
       status: "success",
       statusCode: 200,
-      message: "Listing deleted successfully.",
+      message: "Post deleted successfully.",
     });
-  } catch (err) {
-    console.error("Error deleting Listing:", err);
+  } catch (error) {
+    console.error("Error deleting post:", error);
     res.status(500).send({
       status: "error",
       statusCode: 500,
       error: {
-        code: "ERROR_DELETING_Listing",
-        message: "An error occurred while deleting the Listing.",
-        details: "Please try again later.",
+        code: "INTERNAL_SERVER_ERROR",
+        message: "An unexpected error occurred while deleting the post.",
+        details: error.message,
       },
     });
   }
