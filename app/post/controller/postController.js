@@ -1,4 +1,3 @@
-const Listing = require("../../../models/listingModel");
 const User = require("../../../models/userModel");
 const Animal = require("../../../models/animalModel");
 const Vehicle = require("../../../models/vehicleModel");
