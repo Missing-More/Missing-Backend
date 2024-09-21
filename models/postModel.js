@@ -41,7 +41,7 @@ class Post {
     }
   }
 
-  static async getNearbyPosts(longitude, latitude, radius, type, category) {
+  static async getNearbyPosts(longitude, latitude, radius, status, category) {
     try {
       // Base query with distance calculation
       let query = `
@@ -66,9 +66,9 @@ class Post {
       let paramIndex = 4;
 
       // Add conditions based on type and category if they are provided
-      if (type) {
+      if (status) {
         query += ` AND item_status = $${paramIndex}`;
-        params.push(type);
+        params.push(status);
         paramIndex++;
       }
 

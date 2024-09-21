@@ -5,8 +5,21 @@ class User {
   static async getUser(id) {
     try {
       const result = await db.query(
-        `SELECT user_id, name, profile_image_url, is_premium, account_type FROM "User" WHERE user_id = $1`,
+        `SELECT user_id, name,  email, phone, profile_image_url, account_type FROM "User" WHERE user_id = $1`,
         [id]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error("Error getting user:", error);
+      throw error;
+    }
+  }
+
+  static async getUserByEmail(email) {
+    try {
+      const result = await db.query(
+        `SELECT * FROM "User" WHERE email = $1`,
+        [email]
       );
       return result.rows[0];
     } catch (error) {

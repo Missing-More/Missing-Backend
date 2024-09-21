@@ -123,7 +123,7 @@ exports.loginUser = async (req, res) => {
 
     try {
         // Find user by email
-        const user = await User.findByEmail(email);
+        const user = await User.getUserByEmail(email);
 
         if (!user) {
             return res.status(404).json({
@@ -158,8 +158,13 @@ exports.loginUser = async (req, res) => {
         });
 
         res.status(200).json({
-            id: user.user_id,
+            user_id: user.user_id,
+            name: user.name,
             email: user.email,
+            phone: user.phone,
+            profile_image_url: user.profile_image_url,
+            account_type: user.account_type,
+            created_at: user.create_at,
             accessToken: token,
         });
     } catch (err) {
@@ -202,8 +207,7 @@ exports.getUserInfo = async (req, res) => {
         res.status(200).json({
             id: user.user_id,
             email: user.email,
-            first_name: user.first_name,  // Assuming these fields exist
-            last_name: user.last_name,
+            name: user.first_name,
             is_premium: user.is_premium,
             phone: user.phone,
             profile_image_url: user.profile_image_url,

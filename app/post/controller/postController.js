@@ -33,8 +33,6 @@ exports.getPost = async (req, res) => {
       });
     }
 
-    const images = await Image.getImages(postId);
-
     let entity = null;
     switch (post.category_id) {
       case 1:
@@ -51,9 +49,10 @@ exports.getPost = async (req, res) => {
 
     res.status(200).send({
       post,
-      images,
+      images: await Image.getImages(postId),
       entity,
       user,
+      location: await Location.getLocation(post.location_id),
     });
   } catch (error) {
     console.error("Error retrieving Post:", error);
@@ -178,7 +177,7 @@ exports.createPost = async (req, res) => {
 };
 
 exports.getNearbyPosts = async (req, res) => {
-  const { longitude, latitude, radius, type, category_id } = req.query;
+  const { longitude, latitude, radius, status, category_id } = req.query;
 
   if (!longitude || !latitude || !radius) {
     return res.status(400).send({
@@ -192,7 +191,7 @@ exports.getNearbyPosts = async (req, res) => {
   }
 
   try {
-    const posts = await Post.getNearbyPosts(longitude, latitude, radius, type, category_id);
+    const posts = await Post.getNearbyPosts(longitude, latitude, radius, status, category_id);
 
     const results = await Promise.all(
       posts.map(async (post) => {
