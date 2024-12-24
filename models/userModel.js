@@ -51,6 +51,19 @@ class User {
     }
   }
 
+  static async createUser(user) {
+    try {
+      const result = await db.query(
+        `INSERT INTO "User" (email, password) VALUES ($1, $2) RETURNING user_id`,
+        [user.email, user.password]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw error;
+    }
+  }
+
 }
 
 module.exports = User;

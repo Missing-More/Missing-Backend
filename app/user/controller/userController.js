@@ -59,7 +59,7 @@ exports.registerUser = async (req, res) => {
         // Create a User object
         const user = {
             email,
-            password: hashedPassword,
+            password: hashedPassword
         };
 
         // Save User in the database
@@ -70,8 +70,15 @@ exports.registerUser = async (req, res) => {
             status: "success",
             statusCode: 201,
             data: {
-                id: data.user_id,
+                user_id: data.user_id,
                 email: data.email,
+                name: data.name,
+                phone: data.phone,
+                created_at: data.created_at,
+                account_type: data.account_type,
+                accessToken: jwt.sign({ id: data.user_id }, secretKey, {
+                    expiresIn: "48h", // 24 hours
+                }),
             },
         });
     } catch (error) {
