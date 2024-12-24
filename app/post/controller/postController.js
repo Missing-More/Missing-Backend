@@ -7,7 +7,7 @@ const Image = require("../../../models/imageModel");
 
 exports.getPost = async (req, res) => {
   try {
-    const postId = req.query.post_id;
+    const postId = req.params.postId;
 
     if (!postId) {
       return res.status(400).send({
@@ -68,9 +68,9 @@ exports.getPost = async (req, res) => {
   }
 };
 
-exports.getMyPosts = async (req, res) => {
+exports.getUserPosts = async (req, res) => {
   try {
-    const userId = req.userId;
+    const userId = req.params.userId;
 
     if (!userId) {
       return res.status(400).send({
@@ -197,8 +197,7 @@ exports.getNearbyPosts = async (req, res) => {
       posts.map(async (post) => {
         const images = await Image.getImages(post.post.post_id);
         let entity = null;
-
-        switch (post.category_id) {
+        switch (post.post.category_id) {
           case 1:
             entity = await Animal.getAnimal(post.post.post_id);
             break;
@@ -209,7 +208,7 @@ exports.getNearbyPosts = async (req, res) => {
             break;
         }
 
-        const user = await User.getUser(post.user_id);
+        const user = await User.getUser(post.post.user_id);
 
         return {
           post: post.post,
@@ -268,7 +267,7 @@ exports.updateListingById = async (req, res) => {
 
 exports.deletePost = async (req, res) => {
   try {
-    const postId = req.query.post_id;
+    const postId = req.params.postId;
 
     if (!postId) {
       return res.status(400).send({

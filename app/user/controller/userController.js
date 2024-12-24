@@ -193,10 +193,10 @@ exports.loginUser = async (req, res) => {
 exports.getUserInfo = async (req, res) => {
     try {
         // Get user ID from the token
-        const userId = req.userId;
+        const userId = req.params.userId;
 
         // Find user by ID
-        const user = await User.findById(userId);
+        const user = await User.getUser(userId);
 
         if (!user) {
             return res.status(404).json({
@@ -221,47 +221,6 @@ exports.getUserInfo = async (req, res) => {
         });
     } catch (err) {
         console.error("Error retrieving user info:", err);
-        res.status(500).json({
-            status: "error",
-            statusCode: 500,
-            error: {
-                code: "ERROR_RETRIEVING_USER",
-                message: "An error occurred while retrieving the user information.",
-                details: "Please try again later.",
-            },
-        });
-    }
-};
-
-// Get user by ID
-exports.getUserById = async (req, res) => {
-    const { id } = req.params; // Changed to use params for consistency with RESTful conventions
-
-    try {
-        // Find user by ID
-        const user = await User.findById(id);
-
-        if (!user) {
-            return res.status(404).json({
-                status: "error",
-                statusCode: 404,
-                error: {
-                    code: "USER_NOT_FOUND",
-                    message: "User not found.",
-                    details: "No user found with the provided ID.",
-                },
-            });
-        }
-
-        // Send user info
-        res.status(200).json({
-            id: user.user_id,
-            first_name: user.first_name,  // Assuming these fields exist
-            is_premium: user.is_premium,
-            profile_image_url: user.profile_image_url,
-        });
-    } catch (err) {
-        console.error("Error retrieving user by ID:", err);
         res.status(500).json({
             status: "error",
             statusCode: 500,
