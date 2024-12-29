@@ -1,4 +1,4 @@
-const db = require("../config/db");
+import db from "../config/db.js";
 
 class Image {
   static async getImage(id) {
@@ -47,4 +47,4 @@ class Image {
 
 }
 
-module.exports = Image;
+export default Image;

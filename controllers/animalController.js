@@ -1,13 +1,13 @@
-const Animal = require("../models/animalModel");
+import { getPostsByUserId, getPostById } from "../models/animalModel";
 
 
-exports.getMyPosts = async (req, res) => {
+export async function getMyPosts(req, res) {
   try {
     // Get the user ID from the request
     const userId = req.userId;
 
     // Query the database to get the posts associated with the user
-    const posts = await Animal.getPostsByUserId(userId); // Assume this function retrieves the posts by user ID
+    const posts = await getPostsByUserId(userId); // Assume this function retrieves the posts by user ID
 
     // Success response
     res.status(200).send({
@@ -27,16 +27,16 @@ exports.getMyPosts = async (req, res) => {
       },
     });
   }
-};
+}
 
 
-exports.getPostById = async (req, res) => {
+export async function getPostById(req, res) {
     try {
         // Get the post ID from the request
         const postId = req.id;
 
         // Query the database to get the post by ID
-        const post = await Animal.getPostById(postId); // Assume this function retrieves the post by ID
+        const post = await getPostById(postId); // Assume this function retrieves the post by ID
 
         // Check if the post exists
         if (!post) {
@@ -68,4 +68,4 @@ exports.getPostById = async (req, res) => {
             },
         });
     }
-};
+}

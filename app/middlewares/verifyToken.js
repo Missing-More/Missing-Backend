@@ -1,4 +1,5 @@
-const jwt = require('jsonwebtoken');
+import pkg from 'jsonwebtoken';
+const { verify } = pkg;
 const secretKey = process.env.JWT_SECRET || 'your-secret-key';
 
 const verifyToken = (req, res, next) => {
@@ -20,7 +21,7 @@ const verifyToken = (req, res, next) => {
     }
 
     // Verify the token
-    jwt.verify(token, secretKey, (err, decoded) => {
+    verify(token, secretKey, (err, decoded) => {
         if (err) {
             return res.status(401).json({
                 status: 'error',
@@ -52,4 +53,4 @@ const verifyToken = (req, res, next) => {
     });
 };
 
-module.exports = verifyToken;
+export default verifyToken;

@@ -1,21 +1,21 @@
-const express = require("express");
-const router = express.Router();
-const postController = require("../controller/postController");
-const verifyToken = require('../../middlewares/verifyToken');
+import { Router } from "express";
+import { getPostController, getUserPostsController, createPostController, getNearbyPostsController, deletePostController } from "../controller/postController.js";
+import verifyToken from '../../middlewares/verifyToken.js';
 
+const router = Router();
 
-router.get("/:postId", postController.getPost);
+router.get("/nearby", getNearbyPostsController);
 
-router.get("/user/:userId",verifyToken, postController.getUserPosts);
+router.get("/:postId", getPostController);
 
-router.post("/create", verifyToken, postController.createPost);
+router.get("/user/:userId", verifyToken, getUserPostsController);
 
-router.get("/nearby", postController.getNearbyPosts);
+router.post("/create", verifyToken, createPostController);
 
-router.delete("/:postId", verifyToken, postController.deletePost);
+router.delete("/:postId", verifyToken, deletePostController);
 
-/*router.post("/updateListingById", verifyToken, listingController.updateListingById);
+/*router.post("/updateListingById", verifyToken, listing.updateListingById);
 
-router.get("/allListings", listingController.getAllListings);*/
+router.get("/allListings", listing.getAllListings);*/
 
-module.exports = router;
+export default router;

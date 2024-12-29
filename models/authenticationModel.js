@@ -1,10 +1,10 @@
-const db = require("../config/db");
+import { query } from "../config/db";
 
 class Authentication {
 
   static async registerUser(user) {
     try {
-      const result = await db.query(
+      const result = await query(
         `INSERT INTO "User" (email, password) VALUES ($1, $2) RETURNING user_id`,
         [user.email, user.password]
       );
@@ -21,7 +21,7 @@ class Authentication {
 
   static async loginUser(email) {
     try {
-      const result = await db.query(`SELECT * FROM "User" WHERE email = $1`, [
+      const result = await query(`SELECT * FROM "User" WHERE email = $1`, [
         email,
       ]);
       if (result.rows.length === 0) {

@@ -1,16 +1,17 @@
-const User = require("../../../models/userModel");
-const Animal = require("../../../models/animalModel");
-const Vehicle = require("../../../models/vehicleModel");
-const Post = require("../../../models/postModel");
-const Location = require("../../../models/locationModel");
-const Image = require("../../../models/imageModel");
+import User from "../../../models/userModel.js";
+import Animal from "../../../models/animalModel.js";
+import Vehicle from "../../../models/vehicleModel.js";
+import Post from "../../../models/postModel.js";
+import Location from "../../../models/locationModel.js";
+import Image from "../../../models/imageModel.js";
 
-exports.getPost = async (req, res) => {
+
+export async function getPostController(req, res) {
   try {
     const postId = req.params.postId;
 
     if (!postId) {
-      return res.status(400).send({
+      return res.status(400).json({
         status: "error",
         statusCode: 400,
         error: {
@@ -20,10 +21,10 @@ exports.getPost = async (req, res) => {
       });
     }
 
-    const post = await Post.getPost(postId);
+    const post = await Post.getPosts(postId);
 
     if (!post) {
-      return res.status(404).send({
+      return res.status(404).json({
         status: "error",
         statusCode: 404,
         error: {
@@ -47,7 +48,7 @@ exports.getPost = async (req, res) => {
 
     const user = post.user_id ? await User.getUser(post.user_id) : null;
 
-    res.status(200).send({
+    res.status(200).json({
       post,
       images: await Image.getImages(postId),
       entity,
@@ -56,7 +57,7 @@ exports.getPost = async (req, res) => {
     });
   } catch (error) {
     console.error("Error retrieving Post:", error);
-    res.status(500).send({
+    res.status(500).json({
       status: "error",
       statusCode: 500,
       error: {
@@ -66,14 +67,14 @@ exports.getPost = async (req, res) => {
       },
     });
   }
-};
+}
 
-exports.getUserPosts = async (req, res) => {
+export async function getUserPostsController(req, res) {
   try {
     const userId = req.params.userId;
 
     if (!userId) {
-      return res.status(400).send({
+      return res.status(400).json({
         status: "error",
         statusCode: 400,
         error: {
@@ -110,10 +111,10 @@ exports.getUserPosts = async (req, res) => {
       })
     );
 
-    res.status(200).send(results);
+    res.status(200).json(results);
   } catch (error) {
     console.error("Error retrieving posts:", error);
-    res.status(500).send({
+    res.status(500).json({
       status: "error",
       statusCode: 500,
       error: {
@@ -123,15 +124,15 @@ exports.getUserPosts = async (req, res) => {
       },
     });
   }
-};
+}
 
-exports.createPost = async (req, res) => {
+export async function createPostController(req, res) {
   try {
     const userId = req.userId;
     const { location, post, images, entity } = req.body;
 
     if (!userId || !post || !location) {
-      return res.status(400).send({
+      return res.status(400).json({
         status: "error",
         statusCode: 400,
         error: {
@@ -156,7 +157,7 @@ exports.createPost = async (req, res) => {
       createdEntity = await Vehicle.createVehicle(entity, postId);
     }
 
-    res.status(201).send({
+    res.status(201).json({
       post: createdPost,
       images: createdImages,
       location: createdLocation,
@@ -164,7 +165,7 @@ exports.createPost = async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating post:", error);
-    res.status(500).send({
+    res.status(500).json({
       status: "error",
       statusCode: 500,
       error: {
@@ -174,13 +175,14 @@ exports.createPost = async (req, res) => {
       },
     });
   }
-};
+}
 
-exports.getNearbyPosts = async (req, res) => {
+export async function getNearbyPostsController(req, res) {
+  console.log("XXX")
   const { longitude, latitude, radius, status, category_id } = req.query;
 
   if (!longitude || !latitude || !radius) {
-    return res.status(400).send({
+    return res.status(400).json({
       status: "error",
       statusCode: 400,
       error: {
@@ -212,18 +214,18 @@ exports.getNearbyPosts = async (req, res) => {
 
         return {
           post: post.post,
-          images: images,
+          images,
           location: post.location,
-          entity: entity,
-          user: user,
+          entity,
+          user,
         };
       })
     );
 
-    res.status(200).send(results);
+    res.status(200).json(results);
   } catch (error) {
     console.error("Error retrieving nearby posts:", error);
-    res.status(500).send({
+    res.status(500).json({
       status: "error",
       statusCode: 500,
       error: {
@@ -233,16 +235,16 @@ exports.getNearbyPosts = async (req, res) => {
       },
     });
   }
-};
+}
 
-exports.updateListingById = async (req, res) => {
+/*export async function updatePostController(req, res) {
   try {
     const data = await Listing.updateById(req);
 
-    res.status(200).send(data);
+    res.status(200).json(data);
   } catch (error) {
     if (error.kind === "not_found") {
-      res.status(404).send({
+      res.status(404).json({
         status: "error",
         statusCode: 404,
         error: {
@@ -252,7 +254,7 @@ exports.updateListingById = async (req, res) => {
       });
     } else {
       console.error("Error updating listing:", error);
-      res.status(500).send({
+      res.status(500).json({
         status: "error",
         statusCode: 500,
         error: {
@@ -263,14 +265,14 @@ exports.updateListingById = async (req, res) => {
       });
     }
   }
-};
+}*/
 
-exports.deletePost = async (req, res) => {
+export async function deletePostController(req, res) {
   try {
     const postId = req.params.postId;
 
     if (!postId) {
-      return res.status(400).send({
+      return res.status(400).json({
         status: "error",
         statusCode: 400,
         error: {
@@ -283,7 +285,7 @@ exports.deletePost = async (req, res) => {
     const post = await Post.getPost(postId);
 
     if (!post) {
-      return res.status(404).send({
+      return res.status(404).json({
         status: "error",
         statusCode: 404,
         error: {
@@ -294,7 +296,7 @@ exports.deletePost = async (req, res) => {
     }
 
     if (post.user_id !== req.userId) {
-      return res.status(403).send({
+      return res.status(403).json({
         status: "error",
         statusCode: 403,
         error: {
@@ -304,16 +306,16 @@ exports.deletePost = async (req, res) => {
       });
     }
 
-    await Post.delete(postId);
+    await Post.deletePost(postId);
 
-    res.status(200).send({
+    res.status(200).json({
       status: "success",
       statusCode: 200,
       message: "Post deleted successfully.",
     });
   } catch (error) {
     console.error("Error deleting post:", error);
-    res.status(500).send({
+    res.status(500).json({
       status: "error",
       statusCode: 500,
       error: {
@@ -323,4 +325,4 @@ exports.deletePost = async (req, res) => {
       },
     });
   }
-};
+}

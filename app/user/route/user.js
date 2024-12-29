@@ -1,15 +1,19 @@
-const express = require('express');
-const router = express.Router();
-const userController = require('../controller/userController');
-const authenticateToken = require('../../middlewares/authMiddleware');
-const verifyToken = require('../../middlewares/verifyToken');
+import { Router } from 'express'; // Import Router from express
+import verifyToken from '../../middlewares/verifyToken.js'; // Add .js extension
+
+import { getUserInfo, registerUser, loginUser } from '../controller/userController.js'; // Add .js extension for ES Modules
 
 
-router.get('/:userId', verifyToken, userController.getUserInfo);
+const router = Router(); // Initialize the router
 
-router.post('/register', userController.registerUser);
+// Route to get user info
+router.get('/:userId', verifyToken, getUserInfo);
 
-router.post('/login', userController.loginUser);
+// Route to register a new user
+router.post('/register', registerUser);
 
+// Route to log in a user
+router.post('/login', loginUser);
 
-module.exports = router;
+// Export the router as default
+export default router;

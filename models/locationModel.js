@@ -1,4 +1,4 @@
-const db = require("../config/db");
+import db from "../config/db.js";
 
 class Location {
   static async getLocation(id) {
@@ -70,4 +70,4 @@ class Location {
   }
 }
 
-module.exports = Location;
+export default Location;

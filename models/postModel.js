@@ -1,16 +1,16 @@
-const db = require("../config/db");
+import db from "../config/db.js";
 
 class Post {
-  static async getPost(post_id) {
+  static async getPost(id) {
     try {
       const query = `
         SELECT * FROM "Post"
-        WHERE post_id = $1 AND post_status = 'OPEN'
+        WHERE id = $1 AND status = 'OPEN'
       `;
-      const result = await db.query(query, [post_id]);
+      const result = await db.query(query, [id]);
 
       if (result.rows.length === 0) {
-        throw new Error(`Post with ID ${post_id} not found or is not open.`);
+        throw new Error(`Post with ID ${id} not found or is not open.`);
       }
 
       // Return the first row from the result
@@ -83,7 +83,7 @@ class Post {
       // Map the result to the desired format
       const posts = result.rows.map((row) => ({
         post: {
-          post_id: row.post_id,
+          id: row.id,
           user_id: row.user_id,
           category_id: row.category_id,
           created_at: row.created_at,
@@ -93,7 +93,7 @@ class Post {
           found_date: row.found_date,
           is_visible: row.is_visible,
           item_status: row.item_status,
-          post_status: row.post_status,
+          status: row.status,
           views_count: row.views_count,
           closed_at: row.closed_at,
         },
@@ -172,20 +172,20 @@ class Post {
     }
   }
 
-  static async delete(post_id) {
+  static async delete(id) {
     try {
       const query = `
         UPDATE "Post"
-        SET post_status = 'DELETED'
-        WHERE post_id = $1
+        SET status = 'DELETED'
+        WHERE id = $1
         RETURNING *  -- Return the updated post to confirm the change
       `;
 
-      const result = await db.query(query, [post_id]);
+      const result = await db.query(query, [id]);
 
       // Check if any rows were affected
       if (result.rowCount === 0) {
-        throw new Error(`Post with ID ${post_id} not found or already deleted.`);
+        throw new Error(`Post with ID ${id} not found or already deleted.`);
       }
 
       return result.rows[0];
@@ -196,4 +196,4 @@ class Post {
   }
 }
 
-module.exports = Post;
+export default Post;

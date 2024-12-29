@@ -1,11 +1,10 @@
-const db = require("../config/db");
+import db from "../config/db.js"; // ES Module import syntax
 
 class User {
-
   static async getUser(id) {
     try {
       const result = await db.query(
-        `SELECT user_id, name,  email, phone, profile_image_url, account_type FROM "User" WHERE user_id = $1`,
+        `SELECT user_id, name, email, phone, profile_image_url, account_type FROM "User" WHERE user_id = $1`,
         [id]
       );
       return result.rows[0];
@@ -63,7 +62,6 @@ class User {
       throw error;
     }
   }
-
 }
 
-module.exports = User;
+export default User; // ES Module export syntax

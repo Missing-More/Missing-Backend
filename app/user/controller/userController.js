@@ -1,16 +1,22 @@
-const User = require("../../../models/userModel");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const { isValidEmail, isPasswordStrong } = require("../../../utils/validators");
+import pkg from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+const { sign } = pkg;
+const { hashSync, compareSync } = bcrypt;
+import validators from "../../../utils/validators.js";
+
+// Destructure the functions from the imported object
+const { isValidEmail, isPasswordStrong } = validators;
+
+import User from "../../../models/userModel.js";
 
 // Define your secret key securely
 const secretKey = process.env.JWT_SECRET || "your-secret-key";
 
-// Create and Save a new User
-exports.registerUser = async (req, res) => {
+// Register a new User
+export async function registerUser(req, res) {
     const { email, password } = req.body;
 
-    // Validate request
+    // Validate the request data
     if (!email || !password) {
         return res.status(400).json({
             status: "error",
@@ -54,21 +60,19 @@ exports.registerUser = async (req, res) => {
 
     try {
         // Hash the password
-        const hashedPassword = bcrypt.hashSync(password, 8);
+        const hashedPassword = hashSync(password, 8);
 
-        // Create a User object
+        // Create the user object
         const user = {
             email,
             password: hashedPassword
         };
 
-        // Save User in the database
+        // Save user to the database
         const data = await User.createUser(user);
 
-        // Send a success response
+        // Respond with the user info and token
         res.status(201).json({
-            status: "success",
-            statusCode: 201,
             data: {
                 user_id: data.user_id,
                 email: data.email,
@@ -76,8 +80,8 @@ exports.registerUser = async (req, res) => {
                 phone: data.phone,
                 created_at: data.created_at,
                 account_type: data.account_type,
-                accessToken: jwt.sign({ id: data.user_id }, secretKey, {
-                    expiresIn: "48h", // 24 hours
+                accessToken: sign({ id: data.user_id }, secretKey, {
+                    expiresIn: "48h", // 48 hours
                 }),
             },
         });
@@ -94,13 +98,13 @@ exports.registerUser = async (req, res) => {
             },
         });
     }
-};
+}
 
 // Login a User
-exports.loginUser = async (req, res) => {
+export async function loginUser(req, res) {
     const { email, password } = req.body;
 
-    // Validate request
+    // Validate the request data
     if (!email || !password) {
         return res.status(400).json({
             status: "error",
@@ -144,8 +148,8 @@ exports.loginUser = async (req, res) => {
             });
         }
 
-        // Check if password is valid
-        const passwordIsValid = bcrypt.compareSync(password, user.password);
+        // Check if the password is correct
+        const passwordIsValid = compareSync(password, user.password);
 
         if (!passwordIsValid) {
             return res.status(401).json({
@@ -160,19 +164,21 @@ exports.loginUser = async (req, res) => {
         }
 
         // Generate a token
-        const token = jwt.sign({ id: user.user_id }, secretKey, {
+        const token = sign({ id: user.user_id }, secretKey, {
             expiresIn: "24h", // 24 hours
         });
 
         res.status(200).json({
-            user_id: user.user_id,
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-            profile_image_url: user.profile_image_url,
-            account_type: user.account_type,
-            created_at: user.create_at,
-            accessToken: token,
+            data: {
+                user_id: user.user_id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                profile_image_url: user.profile_image_url,
+                account_type: user.account_type,
+                created_at: user.created_at,
+                accessToken: token
+            },
         });
     } catch (err) {
         console.error("Error logging in user:", err);
@@ -187,13 +193,12 @@ exports.loginUser = async (req, res) => {
             },
         });
     }
-};
+}
 
 // Get user info
-exports.getUserInfo = async (req, res) => {
+export async function getUserInfo(req, res) {
     try {
-        // Get user ID from the token
-        const userId = req.params.userId;
+        const userId = req.params.userId; // Get user ID from the params
 
         // Find user by ID
         const user = await User.getUser(userId);
@@ -214,7 +219,7 @@ exports.getUserInfo = async (req, res) => {
         res.status(200).json({
             id: user.user_id,
             email: user.email,
-            name: user.first_name,
+            name: user.name,
             is_premium: user.is_premium,
             phone: user.phone,
             profile_image_url: user.profile_image_url,
@@ -231,4 +236,4 @@ exports.getUserInfo = async (req, res) => {
             },
         });
     }
-};
+}

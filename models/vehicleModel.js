@@ -1,4 +1,4 @@
-const db = require("../config/db");
+import db from "../config/db.js";
 
 class Vehicle {
     static async getVehicle(id) {
@@ -52,4 +52,4 @@ class Vehicle {
     }
 }
 
-module.exports = Vehicle;
+export default Vehicle;

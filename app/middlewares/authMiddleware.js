@@ -1,4 +1,4 @@
-const jwt = require('jsonwebtoken');
+import { verify } from 'jsonwebtoken';
 const secretKey = 'your-secret-key'; // Replace with your actual secret key
 
 // Middleware to authenticate the token
@@ -18,7 +18,7 @@ const authenticateToken = (req, res, next) => {
         });
     }
 
-    jwt.verify(token, secretKey, (err, user) => {
+    verify(token, secretKey, (err, user) => {
         if (err) {
             return res.status(403).send({
                 status: "error",
@@ -37,6 +37,6 @@ const authenticateToken = (req, res, next) => {
 };
 
 
-module.exports = {
+export default {
     authenticateToken
 };

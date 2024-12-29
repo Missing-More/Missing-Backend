@@ -1,8 +1,11 @@
-const express = require('express');
+import express, { json } from 'express';
+import userRoutes from './app/user/route/user.js';
+import postRoutes from './app/post/route/post.js';
+
 const app = express();
 const port = 3000;
 
-app.use(express.json()); // Middleware to parse JSON bodies
+app.use(json()); // Middleware to parse JSON bodies
 
 // Basic route
 app.get('/', (req, res) => {
@@ -10,10 +13,10 @@ app.get('/', (req, res) => {
 });
 
 // User routes
-app.use('/users', require('./app/user/route/user'));
+app.use('/users', userRoutes);
 
 // Post routes
-app.use('/posts', require('./app/post/route/post'));
+app.use('/posts', postRoutes);
 
 // Animal routes
 //app.use('/animals', require('./routes/animal'));

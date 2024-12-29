@@ -13,4 +13,4 @@ function isPasswordStrong(password) {
 }
 
 
-module.exports = { isValidEmail, isPasswordStrong };
+export default { isValidEmail, isPasswordStrong };
