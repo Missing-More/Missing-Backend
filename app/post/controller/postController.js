@@ -9,6 +9,7 @@ import Image from "../../../models/imageModel.js";
 export async function getPostController(req, res) {
   try {
     const postId = req.params.postId;
+    console.log("BON")
 
     if (!postId) {
       return res.status(400).json({
@@ -21,7 +22,7 @@ export async function getPostController(req, res) {
       });
     }
 
-    const post = await Post.getPosts(postId);
+    const post = await Post.getPost(postId);
 
     if (!post) {
       return res.status(404).json({
@@ -49,11 +50,24 @@ export async function getPostController(req, res) {
     const user = post.user_id ? await User.getUser(post.user_id) : null;
 
     res.status(200).json({
-      post,
-      images: await Image.getImages(postId),
-      entity,
-      user,
-      location: await Location.getLocation(post.location_id),
+      data: {
+        post: {
+          created_at: post.created_at,
+          updated_at: post.updated_at,
+          reward: post.reward,
+          lost_date: post.lost_date,
+          found_date: post.found_date,
+          is_visible: post.is_visible,
+          item_status: post.item_status,
+          post_status: post.post_status,
+          views_count: post.views_count,
+          closed_at: post.closed_at,
+          images: await Image.getImages(postId),
+          entity,
+          location: await Location.getLocation(post.location_id),
+          user,
+        },
+      }
     });
   } catch (error) {
     console.error("Error retrieving Post:", error);
@@ -84,34 +98,57 @@ export async function getUserPostsController(req, res) {
       });
     }
 
+    // Initialize the response structure
+    let data = {
+      "data": {
+        "posts": []  // This is an array that will hold all the posts data
+      }
+    };
+
+    // Fetch posts for the user
     const posts = await Post.getPosts(userId);
 
+    // Process all posts
     const results = await Promise.all(
       posts.map(async (post) => {
-        const images = await Image.getImages(post.post_id);
-        let entity = null;
+        // Create postData object to hold the current post's data
+        let postData = {
+            created_at: post.created_at,
+            updated_at: post.updated_at,
+            reward: post.reward,
+            lost_date: post.lost_date,
+            found_date: post.found_date,
+            is_visible: post.is_visible,
+            item_status: post.item_status,
+            post_status: post.post_status,
+            views_count: post.views_count,
+            closed_at: post.closed_at,
+            "images": [] 
+        };
 
+        // Add images for the current post
+        postData.images = await Image.getImages(post.post_id);
+
+
+        // Add category-related data based on category_id
         switch (post.category_id) {
-          case 1:
-            entity = await Animal.getAnimal(post.post_id);
+          case 1:  // Animal category
+            postData.entity = await Animal.getAnimal(post.post_id);
             break;
-          case 2:
-            entity = await Vehicle.getVehicle(post.post_id);
+          case 2:  // Vehicle category
+            postData.entity = await Vehicle.getVehicle(post.post_id);
             break;
           default:
             break;
         }
-
-        return {
-          post,
-          images,
-          entity,
-          user: await User.getUser(userId),
-        };
+        postData.location = await Location.getLocation(post.location_id);
+        // Push the complete post data into the posts array
+        data.data.posts.push(postData);
       })
     );
 
-    res.status(200).json(results);
+    // Return the final data
+    res.status(200).json(data);
   } catch (error) {
     console.error("Error retrieving posts:", error);
     res.status(500).json({
@@ -125,6 +162,7 @@ export async function getUserPostsController(req, res) {
     });
   }
 }
+
 
 export async function createPostController(req, res) {
   try {
@@ -178,7 +216,6 @@ export async function createPostController(req, res) {
 }
 
 export async function getNearbyPostsController(req, res) {
-  console.log("XXX")
   const { longitude, latitude, radius, status, category_id } = req.query;
 
   if (!longitude || !latitude || !radius) {

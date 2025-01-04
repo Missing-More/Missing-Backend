@@ -4,7 +4,7 @@ class Image {
   static async getImage(id) {
     try {
       const result = await db.query(
-        `SELECT * FROM "PostImage" WHERE image_id = $1`,
+        `SELECT image_url, created_at FROM "PostImage" WHERE image_id = $1`,
         [id]
       );
       return result.rows[0];
@@ -17,7 +17,7 @@ class Image {
   static async getImages(post_id) {
     try {
       const result = await db.query(
-        `SELECT * FROM "PostImage" WHERE post_id = $1`,
+        `SELECT image_url, created_at FROM "PostImage" WHERE post_id = $1`,
         [post_id]
       );
       return result.rows;

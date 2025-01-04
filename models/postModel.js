@@ -5,7 +5,7 @@ class Post {
     try {
       const query = `
         SELECT * FROM "Post"
-        WHERE id = $1 AND status = 'OPEN'
+        WHERE post_id = $1
       `;
       const result = await db.query(query, [id]);
 

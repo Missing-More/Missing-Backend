@@ -8,7 +8,7 @@ router.get("/nearby", getNearbyPostsController);
 
 router.get("/:postId", getPostController);
 
-router.get("/user/:userId", verifyToken, getUserPostsController);
+router.get("/user/:userId", /*verifyToken,*/ getUserPostsController);
 
 router.post("/create", verifyToken, createPostController);
 

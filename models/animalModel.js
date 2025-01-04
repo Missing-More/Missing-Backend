@@ -4,7 +4,7 @@ class Animal {
   static async getAnimal(id) {
     try {
       const result = await db.query(
-        `SELECT * FROM "Animal" WHERE animal_id = $1`,
+        `SELECT name, type, gender, race, age, description FROM "Animal" WHERE animal_id = $1`,
         [id]
       );
       return result.rows[0];
@@ -17,7 +17,7 @@ class Animal {
   static async getAnimalByPostId(post_id) {
     try {
       const result = await db.query(
-        `SELECT * FROM "Animal" WHERE lost_item_id = $1 OR found_item_id = $1`,
+        `SELECT name, type, gender, race, age, description FROM "Animal" WHERE lost_item_id = $1 OR found_item_id = $1`,
         [post_id]
       );
       return result.rows;
